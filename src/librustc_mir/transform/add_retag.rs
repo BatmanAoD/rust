@@ -17,29 +17,7 @@ pub struct AddRetag;
 fn is_stable(
     place: PlaceRef<'_, '_>,
 ) -> bool {
-    if let Some(proj) = &place.projection {
-        match proj.elem {
-            // Which place this evaluates to can change with any memory write,
-            // so cannot assume this to be stable.
-            ProjectionElem::Deref =>
-                false,
-            // Array indices are intersting, but MIR building generates a *fresh*
-            // temporary for every array access, so the index cannot be changed as
-            // a side-effect.
-            ProjectionElem::Index { .. } |
-            // The rest is completely boring, they just offset by a constant.
-            ProjectionElem::Field { .. } |
-            ProjectionElem::ConstantIndex { .. } |
-            ProjectionElem::Subslice { .. } |
-            ProjectionElem::Downcast { .. } =>
-                is_stable(PlaceRef {
-                    base: place.base,
-                    projection: &proj.base,
-                }),
-        }
-    } else {
-        true
-    }
+    place.projection.iter().find(|&elem| *elem == ProjectionElem::Deref).is_none()
 }
 
 /// Determine whether this type may be a reference (or box), and thus needs retagging.
