@@ -43,12 +43,20 @@ impl<'tcx> MutVisitor<'tcx> for InstCombineVisitor<'tcx> {
             let new_place = match *rvalue {
                 Rvalue::Ref(_, _, Place {
                     ref mut base,
-                    projection: Some(ref mut projection),
-                }) => Place {
-                    // Replace with dummy
-                    base: mem::replace(base, PlaceBase::Local(Local::new(0))),
-                    projection: projection.base.take(),
-                },
+                    projection: ref mut projection @ box [.., _],
+                }) => {
+                    let mut projection1 = projection.to_vec();
+                    let projection2 = projection1.split_off(projection1.len() - 1);
+
+                    let place = Place {
+                        // Replace with dummy
+                        base: mem::replace(base, PlaceBase::Local(Local::new(0))),
+                        projection: projection1.into_boxed_slice(),
+                    };
+                    *projection = projection2.into_boxed_slice();
+
+                    place
+                }
                 _ => bug!("Detected `&*` but didn't find `&*`!"),
             };
             *rvalue = Rvalue::Use(Operand::Copy(new_place))
@@ -83,12 +91,19 @@ impl OptimizationFinder<'b, 'tcx> {
 impl Visitor<'tcx> for OptimizationFinder<'b, 'tcx> {
     fn visit_rvalue(&mut self, rvalue: &Rvalue<'tcx>, location: Location) {
         if let Rvalue::Ref(_, _, Place {
-            ref base,
-            projection: Some(ref projection),
-        }) = *rvalue {
-            if let ProjectionElem::Deref = projection.elem {
-                if Place::ty_from(&base, &projection.base, self.body, self.tcx).ty.is_region_ptr() {
-                    self.optimizations.and_stars.insert(location);
+            base: _,
+            projection: box [.., elem],
+        }) = rvalue {
+            if *elem == ProjectionElem::Deref {
+                // FIXME remove this once we can use slices patterns
+                if let Rvalue::Ref(_, _, Place {
+                    base,
+                    projection,
+                }) = rvalue {
+                    let proj_base = &projection[..projection.len() - 1];
+                    if Place::ty_from(base, proj_base, self.body, self.tcx).ty.is_region_ptr() {
+                        self.optimizations.and_stars.insert(location);
+                    }
                 }
             }
         }
