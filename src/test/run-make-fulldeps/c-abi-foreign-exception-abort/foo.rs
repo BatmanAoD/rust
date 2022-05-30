@@ -6,12 +6,12 @@
 use std::panic::catch_unwind;
 
 extern "C-unwind" {
-    fn test_cxx_exception();
+    fn throw_cxx_exception();
 }
 
 fn main() {
-    let caught_unwind = catch_unwind(|| {
-        unsafe { test_cxx_exception() }
+    let _ = catch_unwind(|| {
+        unsafe { throw_cxx_exception() }
         unreachable!("C++ function should have thrown instead of returned");
     });
     unreachable!("catch_unwind should not be able to catch C++ exception");
