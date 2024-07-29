@@ -2373,9 +2373,9 @@ extern "rust-intrinsic" {
     pub fn discriminant_value<T>(v: &T) -> <T as DiscriminantKind>::Discriminant;
 
     /// Rust's "try catch" construct for unwinding. Invokes the function pointer `try_fn` with the
-    /// data pointer `data`, and calls `catch_fn` if a panic occurs while `try_fn` runs. (It is
+    /// data pointer `data`, and calls `catch_fn` if a panic occurs while `try_fn` runs. It is
     /// undefined behavior to catch an unwinding operation from another language with this
-    /// function.)
+    /// function.
     ///
     /// `catch_fn` must not unwind.
     ///
