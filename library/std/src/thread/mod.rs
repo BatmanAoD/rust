@@ -1771,6 +1771,8 @@ impl<T> JoinHandle<T> {
     ///
     /// * The process aborts.
     /// * The function returns a `Result::Err` containing an opaque type.
+    ///
+    /// [`catch_unwind`]: ../../std/panic/fn.catch_unwind.html
     #[stable(feature = "rust1", since = "1.0.0")]
     pub fn join(self) -> Result<T> {
         self.0.join()
